@@ -1,5 +1,7 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::io;
 
 use actix_web::web::Bytes;
 use log::error;
@@ -164,25 +166,17 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
             Err(_) => return Err(AppError::NotFound),
         };
 
-        let resized_image_path: PathBuf =
-            Path::new(&format!("images/user_profile/resized_{}", profile_image_name)).to_path_buf();
+        let path = format!("images/user_profile/{}", profile_image_name);
 
-        // リサイズ済みの画像が存在するか確認
-        if resized_image_path.exists() {
-            // リサイズ済みの画像を読み込み、Bytesに変換して返す
-            let mut file = tokio::fs::File::open(resized_image_path)
-                .await
-                .map_err(|_| AppError::InternalServerError)?;
-            let mut buf = Vec::new();
-            file.read_to_end(&mut buf)
-                .await
-                .map_err(|_| AppError::InternalServerError)?;
-            return Ok(Bytes::from(buf));
+        match fs::read(path) {
+            Ok(contents) => Ok(Bytes::from(contents)),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(AppError::NotFound),
+            Err(e) => {
+                eprintln!("IO error: {}", e);
+                Err(AppError::NotFound) // その他のエラーも NotFound として扱う
+            }
         }
-
-        Err(AppError::NotFound)
     }
-
 
     pub async fn validate_session(&self, session_token: &str) -> Result<bool, AppError> {
         let session = self
