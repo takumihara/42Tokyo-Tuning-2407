@@ -1,5 +1,7 @@
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::io;
 
 use actix_web::web::Bytes;
 use log::error;
@@ -164,28 +166,14 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
             Err(_) => return Err(AppError::NotFound),
         };
 
-        let path: PathBuf =
-            Path::new(&format!("images/user_profile/{}", profile_image_name)).to_path_buf();
+        let path = format!("images/user_profile/{}", profile_image_name);
 
-        let output = Command::new("magick")
-            .arg(&path)
-            .arg("-resize")
-            .arg("500x500")
-            .arg("png:-")
-            .output()
-            .map_err(|e| {
-                error!("画像リサイズのコマンド実行に失敗しました: {:?}", e);
-                AppError::InternalServerError
-            })?;
-
-        match output.status.success() {
-            true => Ok(Bytes::from(output.stdout)),
-            false => {
-                error!(
-                    "画像リサイズのコマンド実行に失敗しました: {:?}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
-                Err(AppError::InternalServerError)
+        match fs::read(path) {
+            Ok(contents) => Ok(Bytes::from(contents)),
+            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(AppError::NotFound),
+            Err(e) => {
+                eprintln!("IO error: {}", e);
+                Err(AppError::NotFound) // その他のエラーも NotFound として扱う
             }
         }
     }
