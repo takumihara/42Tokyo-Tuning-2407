@@ -97,6 +97,7 @@ async fn main() -> std::io::Result<()> {
                     .service(
                         web::scope("/tow_truck")
                             .wrap(AuthMiddleware::new(auth_service_for_middleware.clone()))
+                            // MEMO: not used in benchmark
                             .service(web::resource("/list").route(
                                 web::get().to(tow_truck_handler::get_paginated_tow_trucks_handler),
                             ))
