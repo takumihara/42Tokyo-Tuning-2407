@@ -100,10 +100,12 @@ impl<
             graph.add_edge(edge);
         }
 
+        let distances = graph.dijkstra(order.node_id);
+
         let tow_trucks_with_distance: Vec<_> = tow_trucks
             .into_iter()
             .map(|truck| {
-                let distance = calculate_distance(&graph, truck.node_id, order.node_id);
+                let distance = distances.get(&truck.node_id).unwrap().clone();
                 (distance, truck)
             })
             .collect();
@@ -121,8 +123,4 @@ impl<
             None => Ok(None),
         }
     }
-}
-
-fn calculate_distance(graph: &Graph, node_id_1: i32, node_id_2: i32) -> i32 {
-    graph.shortest_path(node_id_1, node_id_2)
 }
