@@ -1,6 +1,6 @@
 use crate::domains::order_service::OrderRepository;
 use crate::errors::AppError;
-use crate::models::order::{CompletedOrder, Order, OrderWithData};
+use crate::models::order::{Order, OrderWithData};
 use chrono::{DateTime, Utc};
 use sqlx::mysql::MySqlPool;
 
@@ -194,33 +194,5 @@ impl OrderRepository for OrderRepositoryImpl {
         .await?;
 
         Ok(())
-    }
-
-    async fn create_completed_order(
-        &self,
-        order_id: i32,
-        tow_truck_id: i32,
-        completed_time: DateTime<Utc>,
-    ) -> Result<(), AppError> {
-        sqlx::query("INSERT INTO completed_orders (order_id, tow_truck_id, completed_time) VALUES (?, ?, ?)")
-            .bind(order_id)
-            .bind(tow_truck_id)
-            .bind(completed_time)
-            .execute(&self.pool)
-            .await?;
-
-        Ok(())
-    }
-
-    async fn get_all_completed_orders(&self) -> Result<Vec<CompletedOrder>, AppError> {
-        let orders = sqlx::query_as::<_, CompletedOrder>(
-            "SELECT co.id, co.order_id, co.tow_truck_id, co.order_time, co.completed_time, o.car_value
-                    FROM completed_orders co
-                    JOIN orders o ON co.order_id = o.id"
-            )
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok(orders)
     }
 }

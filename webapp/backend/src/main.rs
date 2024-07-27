@@ -2,10 +2,7 @@ use std::sync::Arc;
 
 use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
-use api::{
-    auth_handler, health_check_handler, map_handler, order_handler, result_handler,
-    tow_truck_handler,
-};
+use api::{auth_handler, health_check_handler, map_handler, order_handler, tow_truck_handler};
 use domains::map_service::MapService;
 use domains::{
     auth_service::AuthService, order_service::OrderService, tow_truck_service::TowTruckService,
@@ -74,10 +71,6 @@ async fn main() -> std::io::Result<()> {
                     .service(
                         web::resource("/health_check")
                             .route(web::get().to(health_check_handler::health_check_handler)),
-                    )
-                    .service(
-                        web::resource("/result")
-                            .route(web::get().to(result_handler::result_handler)),
                     )
                     .service(
                         web::resource("/register")
