@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
 
 use super::{
-    auth_service::AuthRepository,
-    dto::order::{CompletedOrderDto, OrderDto},
-    map_service::MapRepository,
+    auth_service::AuthRepository, dto::order::OrderDto, map_service::MapRepository,
     tow_truck_service::TowTruckRepository,
 };
 use crate::{
     errors::AppError,
-    models::order::{CompletedOrder, Order, OrderWithData},
+    models::order::{Order, OrderWithData},
 };
 
 pub trait OrderRepository {
@@ -35,13 +33,6 @@ pub trait OrderRepository {
         dispatcher_id: i32,
         tow_truck_id: i32,
     ) -> Result<(), AppError>;
-    async fn create_completed_order(
-        &self,
-        order_id: i32,
-        tow_truck_id: i32,
-        completed_time: DateTime<Utc>,
-    ) -> Result<(), AppError>;
-    async fn get_all_completed_orders(&self) -> Result<Vec<CompletedOrder>, AppError>;
 }
 
 #[derive(Debug)]
@@ -209,12 +200,9 @@ impl<
         tow_truck_id: i32,
         order_time: DateTime<Utc>,
     ) -> Result<(), AppError> {
-        if (self
-            .order_repository
-            .create_completed_order(order_id, tow_truck_id, order_time)
-            .await)
-            .is_err()
-        {
+        let order = self.order_repository.find_order_by_id(order_id).await?;
+
+        if (order.status != "pending") {
             return Err(AppError::BadRequest);
         }
 
@@ -227,15 +215,5 @@ impl<
             .await?;
 
         Ok(())
-    }
-
-    pub async fn get_completed_orders(&self) -> Result<Vec<CompletedOrderDto>, AppError> {
-        let orders = self.order_repository.get_all_completed_orders().await?;
-        let order_dtos = orders
-            .into_iter()
-            .map(CompletedOrderDto::from_entity)
-            .collect();
-
-        Ok(order_dtos)
     }
 }

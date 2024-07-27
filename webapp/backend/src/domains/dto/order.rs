@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::models::order::{CompletedOrder, OrderWithData};
+use crate::models::order::OrderWithData;
 
 // Input Data Structure
 
@@ -62,29 +62,6 @@ impl OrderDto {
             status: entity.status,
             node_id: entity.node_id,
             area_id: entity.area_id,
-            car_value: entity.car_value,
-            order_time: entity.order_time,
-            completed_time: entity.completed_time,
-        }
-    }
-}
-
-#[derive(Serialize, Debug)]
-pub struct CompletedOrderDto {
-    pub id: i32,
-    pub order_id: i32,
-    pub tow_truck_id: i32,
-    pub order_time: Option<DateTime<Utc>>,
-    pub completed_time: DateTime<Utc>,
-    pub car_value: f64,
-}
-
-impl CompletedOrderDto {
-    pub fn from_entity(entity: CompletedOrder) -> Self {
-        CompletedOrderDto {
-            id: entity.id,
-            order_id: entity.order_id,
-            tow_truck_id: entity.tow_truck_id,
             car_value: entity.car_value,
             order_time: entity.order_time,
             completed_time: entity.completed_time,
