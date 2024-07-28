@@ -1,13 +1,13 @@
-use std::fs;
-use std::io;
-
-use actix_web::web::Bytes;
-
+use super::dto::auth::LoginResponseDto;
 use crate::errors::AppError;
 use crate::models::user::{Dispatcher, Session, User};
 use crate::utils::{generate_session_token, hash_password, verify_password};
-
-use super::dto::auth::LoginResponseDto;
+use actix_web::web::Bytes;
+use log::error;
+use std::fs;
+use std::io;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 pub trait AuthRepository {
     async fn create_user(&self, username: &str, password: &str, role: &str)
@@ -163,14 +163,28 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
             Err(_) => return Err(AppError::NotFound),
         };
 
-        let path = format!("images/user_profile/{}", profile_image_name);
+        let path: PathBuf =
+            Path::new(&format!("images/user_profile/{}", profile_image_name)).to_path_buf();
 
-        match fs::read(path) {
-            Ok(contents) => Ok(Bytes::from(contents)),
-            Err(e) if e.kind() == io::ErrorKind::NotFound => Err(AppError::NotFound),
-            Err(e) => {
-                eprintln!("IO error: {}", e);
-                Err(AppError::NotFound) // その他のエラーも NotFound として扱う
+        let output = Command::new("magick")
+            .arg(&path)
+            .arg("-resize")
+            .arg("500x500")
+            .arg("png:-")
+            .output()
+            .map_err(|e| {
+                error!("画像リサイズのコマンド実行に失敗しました: {:?}", e);
+                AppError::InternalServerError
+            })?;
+
+        match output.status.success() {
+            true => Ok(Bytes::from(output.stdout)),
+            false => {
+                error!(
+                    "画像リサイズのコマンド実行に失敗しました: {:?}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                Err(AppError::InternalServerError)
             }
         }
     }
