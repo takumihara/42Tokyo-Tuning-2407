@@ -3,9 +3,11 @@ use crate::errors::AppError;
 use crate::models::user::{Dispatcher, Session, User};
 use crate::utils::{generate_session_token, hash_password, verify_password};
 use actix_web::web::Bytes;
+use image::{imageops::FilterType, GenericImageView, ImageError, ImageOutputFormat};
 use log::error;
 use std::fs;
 use std::io;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -163,30 +165,21 @@ impl<T: AuthRepository + std::fmt::Debug> AuthService<T> {
             Err(_) => return Err(AppError::NotFound),
         };
 
-        let path: PathBuf =
-            Path::new(&format!("images/user_profile/{}", profile_image_name)).to_path_buf();
+        let img = match image::open(&Path::new(&format!(
+            "images/user_profile/{}",
+            profile_image_name
+        ))) {
+            Ok(img) => img,
+            Err(_) => return Err(AppError::InternalServerError),
+        };
+        let resized = img.resize(500, 500, FilterType::Lanczos3);
 
-        let output = Command::new("magick")
-            .arg(&path)
-            .arg("-resize")
-            .arg("500x500")
-            .arg("png:-")
-            .output()
-            .map_err(|e| {
-                error!("画像リサイズのコマンド実行に失敗しました: {:?}", e);
-                AppError::InternalServerError
-            })?;
-
-        match output.status.success() {
-            true => Ok(Bytes::from(output.stdout)),
-            false => {
-                error!(
-                    "画像リサイズのコマンド実行に失敗しました: {:?}",
-                    String::from_utf8_lossy(&output.stderr)
-                );
-                Err(AppError::InternalServerError)
-            }
+        let mut buf = Vec::new();
+        if let Err(_) = resized.write_to(&mut Cursor::new(&mut buf), ImageOutputFormat::Png) {
+            return Err(AppError::InternalServerError);
         }
+
+        Ok(Bytes::from(buf))
     }
 
     pub async fn validate_session(&self, session_token: &str) -> Result<bool, AppError> {
