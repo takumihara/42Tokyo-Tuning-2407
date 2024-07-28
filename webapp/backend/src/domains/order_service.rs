@@ -198,11 +198,11 @@ impl<
         order_id: i32,
         dispatcher_id: i32,
         tow_truck_id: i32,
-        order_time: DateTime<Utc>,
+        _order_time: DateTime<Utc>,
     ) -> Result<(), AppError> {
         let order = self.order_repository.find_order_by_id(order_id).await?;
 
-        if (order.status != "pending") {
+        if order.status != "pending" {
             return Err(AppError::BadRequest);
         }
 

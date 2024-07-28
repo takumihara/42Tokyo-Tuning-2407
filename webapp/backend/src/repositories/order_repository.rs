@@ -1,7 +1,6 @@
 use crate::domains::order_service::OrderRepository;
 use crate::errors::AppError;
 use crate::models::order::{Order, OrderWithData};
-use chrono::{DateTime, Utc};
 use sqlx::mysql::MySqlPool;
 
 #[derive(Debug)]
